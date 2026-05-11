@@ -11,17 +11,6 @@ This project implements a hybrid detection pipeline that:
 - Combines both approaches using configurable fusion strategies
 - Supports holdout-attack evaluation for generalization testing
 
-### Key Features
-
-✅ **Manual GTP Parsing** – Robust extraction from UDP/2152 payload without scapy layer dependencies  
-✅ **Temporal Features** – Packet rates, byte rates, inter-arrival times  
-✅ **Entropy Analysis** – Payload entropy calculation for anomaly detection  
-✅ **Holdout-Attack Design** – Train on attack types A, test on unseen attack type B  
-✅ **Hybrid Fusion** – Multiple strategies (OR, AND, CNN-priority, Suricata-priority)  
-✅ **Per-Attack Metrics** – Detailed evaluation broken down by attack type  
-
----
-
 ## Architecture
 
 ```
