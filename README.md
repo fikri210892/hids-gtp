@@ -135,8 +135,6 @@ pip install scapy
 sudo apt-get install libpcap-dev
 ```
 
----
-
 ## Step-by-Step Usage
 
 ### Step 1: Feature Extraction
@@ -144,11 +142,7 @@ sudo apt-get install libpcap-dev
 Extract packet-level features from PCAP files:
 
 ```bash
-python3 step1_extract_features_gtp_fixed.py \
-    --output training_dataset_gtp_fixed.csv \
-    --gtp-port 2152 \
-    --rate-window 1.0 \
-    --include-fragmented
+python3 step1_extract_features_gtp_fixed.py
 ```
 
 ### Step 2: CNN Model Training
@@ -156,58 +150,8 @@ python3 step1_extract_features_gtp_fixed.py \
 Train a CNN classifier with strict train/test separation by attack type:
 
 ```bash
-python3 step2_holdout_attack_train.py \
-    --input training_dataset_gtp_fixed.csv \
-    --output-dir training_outputs_holdout \
-    --normal-train-ratio 0.50 \
-    --val-ratio-within-train 0.15 \
-    --train-attack-types flood,malformed \
-    --test-attack-types invalid_teid,spoofing \
-    --epochs 30 \
-    --batch-size 256 \
-    --learning-rate 0.001 \
-    --patience 6 \
-    --seed 42
+python3 step2_holdout_attack_train.py 
 ```
-
-**Parameters:**
-- `--input`: Input CSV from step 1
-- `--output-dir`: Directory for model artifacts (default: `training_outputs_holdout`)
-- `--normal-train-ratio`: % of normal traffic for train/val (default: 0.50)
-- `--val-ratio-within-train`: % of training data reserved for validation (default: 0.15)
-- `--train-attack-types`: Comma-separated attack types for training
-- `--test-attack-types`: Comma-separated attack types for testing (unseen during training)
-- `--epochs`, `--batch-size`, `--learning-rate`: Hyperparameters
-- `--patience`: Early stopping patience (default: 6 epochs)
-- `--seed`: Random seed for reproducibility
-
-**Output Files:**
-```
-training_outputs_holdout/
-├── cnn_model.pt                # Trained PyTorch model
-├── feature_scaler.joblib       # StandardScaler for feature normalization
-├── feature_columns.json        # List of features used for training
-├── removed_columns.json        # Columns excluded (leakage/non-numeric)
-├── training_history.json       # Loss curves per epoch
-├── metrics.json                # Accuracy, precision, recall, F1, confusion matrix
-├── test_predictions.csv        # Per-packet predictions on test set
-└── confusion_matrix.png        # Confusion matrix visualization
-```
-
-**Model Architecture:**
-- Input: 1D CNN (25 features)
-- Conv layers: 3 (16→32→64 channels) with BatchNorm + ReLU
-- Pooling: MaxPool + AdaptiveAvgPool
-- Classifier: Fully connected (64→1) with Sigmoid
-- Loss: BCEWithLogitsLoss with positive class weighting
-
-**Holdout-Attack Design:**
-- **Train**: 50% normal (first half) + all flood/malformed attacks
-- **Validation**: 15% tail samples from train partitions
-- **Test**: 50% normal (second half) + all invalid_teid/spoofing attacks
-- **Purpose**: Evaluate generalization to unseen attack types
-
----
 
 ### Step 3: Suricata Rule-Based Detection
 
