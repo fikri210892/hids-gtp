@@ -1,7 +1,7 @@
 # HIDS-GTP: Hybrid Intrusion Detection System for GTP Traffic
 
-This repository stores the source code of thesis "Implementasi Sistem Deteksi Intrusi Hybrid Untuk Protokol GTP di Jaringan Seluler"
-
+This repository stores the source code **Implementasi Sistem Deteksi Intrusi Hybrid Untuk Protokol GTP di Jaringan Seluler**
+which is a thesis in Universitas Indonesia.
 
 A multi-stage packet-level attack detection system for GTP-U (GPRS Tunneling Protocol) traffic, combining **CNN-based deep learning** with **Suricata rule-based detection** for comprehensive anomaly detection.
 
