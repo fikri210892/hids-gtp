@@ -107,6 +107,9 @@ Default dataset specifications (configured in scripts):
 
 ## Step-by-Step Usage
 
+Install dependencies at requirements.txt
+
+
 ### Step 1: Feature Extraction
 
 Extract packet-level features from PCAP files:
