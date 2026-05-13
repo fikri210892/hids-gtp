@@ -44,7 +44,8 @@ This project implements a hybrid detection pipeline that:
          │                       │
          ▼                       ▼
     ┌──────────────┐      ┌──────────────────┐
-    │ CNN Model    │      │ Suricata Labels  │
+    │ CNN Model    │      │ Step 4:Suricata  │
+    │              │      │  Labels          │
     │ + Scaler     │      │ (per-packet)     │
     └──────────────┘      └──────────────────┘
          │                       │
