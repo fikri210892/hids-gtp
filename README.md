@@ -104,11 +104,40 @@ Default dataset specifications (configured in scripts):
 - `packet_time`, `relative_time`: Timestamps
 
 ---
+## Installation & Dependencies
+
+### Requirements
+
+```bash
+# Python 3.8+
+python3 -m venv venv
+source venv/bin/activate
+
+# Core dependencies
+pip install numpy pandas scikit-learn
+
+# Deep learning
+pip install torch torchvision torchaudio
+
+# Utilities
+pip install matplotlib joblib scapy
+
+# Optional: Suricata (system package)
+sudo apt-get install suricata
+```
+
+### Scapy Setup (if needed)
+
+```bash
+pip install scapy
+
+# For PCAP reading with Scapy on Linux
+sudo apt-get install libpcap-dev
+```
+
+---
 
 ## Step-by-Step Usage
-
-Install dependencies at requirements.txt
-
 
 ### Step 1: Feature Extraction
 
@@ -122,24 +151,7 @@ python3 step1_extract_features_gtp_fixed.py \
     --include-fragmented
 ```
 
-**Parameters:**
-- `--output`: Output CSV file path (default: `training_dataset_gtp_fixed.csv`)
-- `--gtp-port`: UDP port for GTP traffic (default: 2152)
-- `--rate-window`: Temporal window in seconds for rate features (default: 1.0)
-- `--include-fragmented`: Include fragmented attack PCAP if available
-
-**Output:**
-- `training_dataset_gtp_fixed.csv` – Full dataset with 25 features + metadata
-- Console statistics showing packet parsing summary per PCAP
-
-**⚠️ Important:**
-- PCAP files must be in current directory or provide full paths
-- Do NOT use metadata columns for model training
-- Metadata exists for audit and proper train/test splitting
-
----
-
-### Step 2: CNN Model Training (Holdout-Attack Split)
+### Step 2: CNN Model Training
 
 Train a CNN classifier with strict train/test separation by attack type:
 
@@ -339,39 +351,6 @@ For each attack type, computed against normal traffic:
 - Attack-specific recall (% of attack packets detected)
 - Attack-specific precision
 - Sample counts (attack vs. normal)
-
----
-
-## Installation & Dependencies
-
-### Requirements
-
-```bash
-# Python 3.8+
-python3 -m venv venv
-source venv/bin/activate
-
-# Core dependencies
-pip install numpy pandas scikit-learn
-
-# Deep learning
-pip install torch torchvision torchaudio
-
-# Utilities
-pip install matplotlib joblib scapy
-
-# Optional: Suricata (system package)
-sudo apt-get install suricata
-```
-
-### Scapy Setup (if needed)
-
-```bash
-pip install scapy
-
-# For PCAP reading with Scapy on Linux
-sudo apt-get install libpcap-dev
-```
 
 ---
 
