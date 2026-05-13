@@ -197,22 +197,6 @@ python3 step5_combine_cnn_suricata_hybrid.py \
   --mode or
 ```
 
-## License
-
-[Specify your license - e.g., MIT, GPL-3.0, etc.]
-
----
-
-## Contributing
-
-Pull requests and issue reports welcome. Please ensure:
-- [ ] Scripts pass without errors on sample PCAP
-- [ ] No data leakage columns used for training
-- [ ] Metadata columns preserved in outputs
-- [ ] Holdout-attack split properly enforced
-
----
-
 ## Contact & Support
 
 For issues or questions:
