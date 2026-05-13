@@ -1,5 +1,8 @@
 # HIDS-GTP: Hybrid Intrusion Detection System for GTP Traffic
 
+This repository stores the source code of thesis "Implementasi Sistem Deteksi Intrusi Hybrid Untuk Protokol GTP di Jaringan Seluler"
+
+
 A multi-stage packet-level attack detection system for GTP-U (GPRS Tunneling Protocol) traffic, combining **CNN-based deep learning** with **Suricata rule-based detection** for comprehensive anomaly detection.
 
 ## Overview
@@ -155,28 +158,16 @@ python3 step2_holdout_attack_train.py
 
 ### Step 3: Suricata Rule-Based Detection
 
-Configure and run Suricata IDS on test PCAP for comparison:
+sudo suricata -T -c /etc/suricata/suricata.yaml -S /etc/suricata/rules/gtp-custom.rules
 
-#### 3a. Test Suricata Configuration
+rm -rf /home/ubuntuml/suricata_out_holdout
+mkdir -p /home/ubuntuml/suricata_out_holdout
+rm -f /home/ubuntuml/suricata_holdout_packet_labels.csv
 
-```bash
-sudo suricata -T -c /etc/suricata/suricata.yaml \
-    -S /etc/suricata/rules/gtp-custom.rules
-```
-
-#### 3b. Run Suricata on Test PCAP
-
-```bash
-rm -rf suricata_out_holdout
-mkdir -p suricata_out_holdout
-
-suricata -r /path/to/test_pcap.pcap \
-    -c /etc/suricata/suricata.yaml \
-    -S /etc/suricata/rules/gtp-custom.rules \
-    -l suricata_out_holdout
-```
-
-**Note:** Create GTP-specific rules file at `/etc/suricata/rules/gtp-custom.rules` with detection signatures.
+suricata -r /home/ubuntuml/holdout_test_stream.pcap \
+  -c /etc/suricata/suricata.yaml \
+  -S /etc/suricata/rules/gtp-custom.rules \
+  -l /home/ubuntuml/suricata_out_holdout
 
 ---
 
@@ -192,261 +183,18 @@ python3 step4_suricata_packet_labels.py \
     --ground-truth training_dataset_gtp_fixed.csv
 ```
 
-**Parameters:**
-- `--eve`: Path to Suricata eve.json (JSONL alert log)
-- `--output`: Output CSV with per-packet labels
-- `--stats`: Optional Suricata stats.log to auto-read total packet count
-- `--ground-truth`: Optional ground-truth CSV for validation merge
-- `--total-packets`: Explicit total packet count (if stats not available)
-
-**Output CSV Columns:**
-- `pcap_cnt`: Packet index (1-based)
-- `suricata_label`: 0=no alert, 1=alert triggered
-- `alert_count`: Number of unique alerts for packet
-- `signature_ids`: Alert signature IDs (pipe-separated)
-- `signatures`: Alert descriptions
-- `severity_max`: Maximum severity level
-- `src_ips`, `dst_ips`: Unique source/destination IPs
-- `true_label`, `attack_type`, `source_pcap`: (if ground-truth provided)
-
----
-
 ### Step 5: Hybrid CNN + Suricata Fusion
 
 Combine CNN and Suricata predictions using configurable fusion strategies:
 
 ```bash
+step5 combine cnn_suricata
 python3 step5_combine_cnn_suricata_hybrid.py \
-    --cnn training_outputs_holdout/test_predictions.csv \
-    --suricata suricata_labels.csv \
-    --output-dir hybrid_results \
-    --mode cnn_priority \
-    --cnn-low 0.4 \
-    --cnn-high 0.6
+  --cnn test_predictions_cnn.csv \
+  --suricata test_predictions_suricata.csv \
+  --output-dir hybrid_outputs_or \
+  --mode or
 ```
-
-**Parameters:**
-- `--cnn`: CNN predictions CSV from step 2
-- `--suricata`: Suricata labels CSV from step 4
-- `--output-dir`: Directory for hybrid outputs
-- `--mode`: Fusion strategy (see below)
-- `--cnn-low`, `--cnn-high`: Probability thresholds for cnn_priority mode
-
-**Fusion Modes:**
-
-| Mode | Logic | Use Case |
-|------|-------|----------|
-| `or` | Detect if CNN=1 **or** Suricata=1 | High sensitivity, catch all alerts |
-| `and` | Detect if CNN=1 **and** Suricata=1 | High specificity, mutual confirmation |
-| `cnn_priority` | CNN high-confidence overrides Suricata; uncertain cases deferred to Suricata | Default: balance speed & accuracy |
-| `suricata_priority` | Any Suricata alert forces detection; CNN for additional signals | Expert rule-trust mode |
-
-**CNN-Priority Logic:**
-```
-if cnn_prob >= high:        return 1  (confident attack)
-if cnn_prob <= low:         return 0  (confident normal)
-else:                       return suricata_label  (deferred to rules)
-```
-
-**Output Files:**
-```
-hybrid_results/
-├── hybrid_predictions.csv  # Merged predictions from both models
-└── metrics.json            # Detailed fusion metrics and per-attack analysis
-```
-
-**Output CSV Columns:**
-- All CNN features and predictions
-- All Suricata fields (signature_ids, alerts, etc.)
-- `hybrid_label`: Final fused prediction (0/1)
-- `join_method`: How rows were aligned ("pcap_cnt" or "source_pcap+source_seq")
-
-**Metrics JSON Contents:**
-```json
-{
-  "join_method": "pcap_cnt",
-  "ground_truth_source": "true_label_cnn",
-  "fusion_mode": "cnn_priority",
-  "cnn_metrics": { "accuracy": 0.95, "precision": 0.88, ... },
-  "suricata_metrics": { "accuracy": 0.92, ... },
-  "hybrid_metrics": { "accuracy": 0.97, "f1": 0.94, ... },
-  "cnn_per_attack": { "spoofing": { "recall": 0.92, ... }, ... },
-  "suricata_per_attack": { ... },
-  "hybrid_per_attack": { ... }
-}
-```
-
----
-
-## Performance Metrics
-
-### Evaluation Metrics
-
-- **Accuracy**: (TP + TN) / Total
-- **Precision**: TP / (TP + FP) – False alarm rate
-- **Recall**: TP / (TP + FN) – Detection rate
-- **F1-Score**: 2 × (Precision × Recall) / (Precision + Recall)
-- **ROC-AUC**: Receiver Operating Characteristic area (CNN only)
-- **Confusion Matrix**: TP/TN/FP/FN breakdown
-
-### Per-Attack Metrics
-
-For each attack type, computed against normal traffic:
-- Attack-specific recall (% of attack packets detected)
-- Attack-specific precision
-- Sample counts (attack vs. normal)
-
----
-
-## Data Leakage Prevention
-
-⚠️ **Critical:** The following columns contain information that could leak attack patterns into the training set. **DO NOT use these for model input:**
-
-```
-attack_type, source_pcap, direction, pcap_packet_index, 
-gtp_packet_index, packet_time, relative_time
-```
-
-These are **metadata only** for:
-- Dataset audit and reproducibility
-- Proper train/test splitting
-- Per-attack evaluation
-
-The training scripts automatically exclude these columns. If using the CSV directly, filter them manually:
-
-```python
-feature_cols = [c for c in df.columns if c not in LEAKAGE_COLUMNS and c != 'label']
-```
-
----
-
-## Example Workflow
-
-### Full Pipeline (Single Commands)
-
-```bash
-# 1. Extract features from PCAP files (in current directory)
-python3 step1_extract_features_gtp_fixed.py
-
-# 2. Train CNN with holdout-attack split
-python3 step2_holdout_attack_train.py
-
-# 3. Run Suricata on holdout test PCAP
-suricata -r /path/to/test_pcap.pcap -c /etc/suricata/suricata.yaml \
-    -S /etc/suricata/rules/gtp-custom.rules \
-    -l suricata_out_holdout
-
-# 4. Extract Suricata per-packet labels
-python3 step4_suricata_packet_labels.py \
-    --eve suricata_out_holdout/eve.json \
-    --output suricata_labels.csv \
-    --stats suricata_out_holdout/stats.log
-
-# 5. Fuse CNN and Suricata predictions
-python3 step5_combine_cnn_suricata_hybrid.py \
-    --cnn training_outputs_holdout/test_predictions.csv \
-    --suricata suricata_labels.csv \
-    --output-dir hybrid_results \
-    --mode cnn_priority
-```
-
-### Expected Outputs
-
-```
-training_dataset_gtp_fixed.csv
-training_outputs_holdout/
-├── cnn_model.pt
-├── feature_scaler.joblib
-├── metrics.json          # CNN metrics
-└── test_predictions.csv
-suricata_labels.csv
-hybrid_results/
-├── hybrid_predictions.csv
-└── metrics.json          # Fusion metrics
-```
-
----
-
-## Configuration & Customization
-
-### Adjust Attack Types
-
-Modify the train/test split in `step2_holdout_attack_train.py`:
-
-```bash
-python3 step2_holdout_attack_train.py \
-    --train-attack-types flood,invalid_teid \
-    --test-attack-types malformed,spoofing
-```
-
-### Tune CNN Hyperparameters
-
-```bash
-python3 step2_holdout_attack_train.py \
-    --epochs 50 \
-    --batch-size 128 \
-    --learning-rate 0.0005 \
-    --patience 10
-```
-
-### Change Fusion Strategy
-
-```bash
-# High sensitivity (catch everything)
-python3 step5_combine_cnn_suricata_hybrid.py --mode or
-
-# High specificity (mutual confirmation)
-python3 step5_combine_cnn_suricata_hybrid.py --mode and
-
-# Trust Suricata rules more
-python3 step5_combine_cnn_suricata_hybrid.py --mode suricata_priority
-```
-
----
-
-## Troubleshooting
-
-### Issue: "PCAP file not found"
-**Solution:** Ensure PCAP files are in the current working directory or provide absolute paths in the dataset configuration.
-
-### Issue: "No valid GTP packets found"
-**Solution:** Verify PCAP contains UDP traffic on port 2152 with valid GTP headers. Check with:
-```bash
-tcpdump -r file.pcap 'udp port 2152' | head -20
-```
-
-### Issue: "CNN model training very slow"
-**Solution:** 
-- Use CUDA GPU if available (PyTorch auto-detects)
-- Reduce batch size or dataset size
-- Decrease epochs or increase learning rate
-
-### Issue: "Suricata eve.json parsing fails"
-**Solution:** Verify eve.json format with:
-```bash
-head -1 eve.json | jq .
-```
-Ensure each line is valid JSON. Repair malformed logs:
-```bash
-grep -v '^$' eve.json | while read line; do jq -r . <<< "$line" 2>/dev/null && echo; done > eve_clean.json
-```
-
-### Issue: "CNN and Suricata row counts don't match"
-**Solution:** 
-- Verify both CSVs reference the same PCAP/test data
-- Check for missing packets (compare `pcap_cnt` ranges)
-- Use `--total-packets` in step 4 if stats.log unavailable
-
----
-
-## Citation & References
-
-- **GTP Protocol**: 3GPP TS 29.060 (GTP v1-U)
-- **CNN Architecture**: Based on 1D convolutional networks for time-series
-- **Suricata IDS**: https://suricata.io/
-- **PyTorch**: https://pytorch.org/
-
----
 
 ## License
 
