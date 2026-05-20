@@ -11,8 +11,7 @@ This project implements a hybrid detection pipeline that:
 - Extracts packet-level features from GTP-U traffic (port 2152)
 - Trains a CNN binary classifier to detect anomalies
 - Validates detections using Suricata IDS rules
-- Combines both approaches using configurable fusion strategies
-- Supports holdout-attack evaluation for generalization testing
+- Combines both approaches using OR, AND & Confidence Gate fusion strategies
 
 ## Architecture
 
