@@ -1,0 +1,7 @@
+test suricata: 
+sudo suricata -T -c /etc/suricata/suricata.yaml -S /etc/suricata/rules/gtp-custom.rules
+
+run suricata:
+rm -rf suricata_out_holdout
+mkdir -p suricata_out_holdout
+suricata -r /home/ubuntuml/holdout_test_stream.pcap   -c /etc/suricata/suricata.yaml   -S /etc/suricata/rules/gtp-custom.rules   -l /home/ubuntuml/suricata_out_holdout
